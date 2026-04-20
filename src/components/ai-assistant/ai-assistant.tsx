@@ -185,8 +185,8 @@ export function AiAssistant({ open, onOpenChange }: AiAssistantProps) {
           })
         } else {
           addBotMessage({ text: `"${query}"라는 개체를 찾지 못했어요. 다른 이름으로 검색해볼까요?` })
-          startRecording()
         }
+        startRecording()
         break
       }
 
@@ -300,7 +300,7 @@ export function AiAssistant({ open, onOpenChange }: AiAssistantProps) {
           text: message,
           navAction: { label, url },
         })
-        setVoiceState('idle')
+        startRecording()
         break
       }
 
@@ -309,7 +309,7 @@ export function AiAssistant({ open, onOpenChange }: AiAssistantProps) {
           text: message,
           navAction: { label: 'AI 개체 등록 열기', url: '/animals/voice-register' },
         })
-        setVoiceState('idle')
+        startRecording()
         break
       }
 
