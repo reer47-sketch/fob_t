@@ -221,7 +221,7 @@ export function AiAssistant({ open, onOpenChange }: AiAssistantProps) {
           animalIds: allIds.data,
           foodType: p.foodType as FoodType,
           feedingDate: new Date(p.feedingDate),
-          quantity: p.quantity ?? null,
+          quantity: p.quantity != null ? String(p.quantity) : null,
           memo: p.memo ?? null,
           superfood: p.superfood ?? false,
         })
@@ -276,7 +276,7 @@ export function AiAssistant({ open, onOpenChange }: AiAssistantProps) {
           animalIds: targetIds,
           foodType: p.foodType as FoodType,
           feedingDate: new Date(p.feedingDate),
-          quantity: p.quantity ?? null,
+          quantity: p.quantity != null ? String(p.quantity) : null,
           memo: p.memo ?? null,
           superfood: p.superfood ?? false,
         })
@@ -330,7 +330,7 @@ export function AiAssistant({ open, onOpenChange }: AiAssistantProps) {
       animalIds: [animal.id],
       foodType: p.foodType as FoodType,
       feedingDate: new Date(p.feedingDate),
-      quantity: p.quantity ?? null,
+      quantity: p.quantity != null ? String(p.quantity) : null,
       memo: p.memo ?? null,
       superfood: p.superfood ?? false,
     })
