@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic'
+
 import { getCurrentUser } from '@/actions/auth/get-current-user'
 import { AdminSidebar } from '@/components/layout/admin-sidebar'
 import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar'

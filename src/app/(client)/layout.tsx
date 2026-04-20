@@ -1,4 +1,6 @@
 
+export const dynamic = 'force-dynamic'
+
 import { getCurrentUser } from '@/actions/auth/get-current-user'
 import { AppSidebar } from '@/components/layout/app-sidebar'
 import { SpeciesOnboardingGuard } from '@/components/species-onboarding-guard'
