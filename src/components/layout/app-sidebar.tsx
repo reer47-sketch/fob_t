@@ -3,7 +3,7 @@
 import * as React from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { ScanLine, Bot } from "lucide-react"
+import { ScanLine, Bot, BookOpen } from "lucide-react"
 
 import {
   Sidebar,
@@ -84,6 +84,14 @@ const AppSidebarComponent = ({ user, ...props }: AppSidebarProps) => {
               <ScanLine className="size-4 shrink-0" />
               {!isCollapsed && <span>QR 스캔</span>}
             </button>
+            <Link
+              href="/help"
+              className="flex w-full items-center justify-center gap-2 rounded-lg border border-border bg-muted/50 px-3 py-2.5 text-muted-foreground text-sm font-medium hover:bg-muted hover:text-foreground transition-colors group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0 group-data-[collapsible=icon]:py-2"
+              title="사용자 매뉴얼"
+            >
+              <BookOpen className="size-4 shrink-0" />
+              {!isCollapsed && <span>사용자 매뉴얼</span>}
+            </Link>
           </SidebarGroupContent>
         </SidebarGroup>
         <SidebarFooter>
