@@ -227,9 +227,9 @@ export function AiAssistant({ open, onOpenChange }: AiAssistantProps) {
         })
         setVoiceState('idle')
         if (result.success) {
-          addBotMessage({ text: `✅ ${genderLabel} ${allIds.count}마리 피딩 기록이 저장됐어요!` })
+          addBotMessage({ text: `${genderLabel} ${allIds.count}마리 피딩 기록이 저장됐어요!` })
         } else {
-          addBotMessage({ text: '피딩 기록 중 오류가 발생했어요. 다시 시도해주세요.' })
+          addBotMessage({ text: `피딩 기록 중 오류가 발생했어요. (${result.error ?? '알 수 없는 오류'})` })
         }
         startRecording()
         break
@@ -285,9 +285,9 @@ export function AiAssistant({ open, onOpenChange }: AiAssistantProps) {
         if (result.success) {
           const excludeNote = foundNames.length ? ` (${foundNames.join(', ')} 제외)` : ''
           const notFoundNote = notFoundNames.length ? `\n"${notFoundNames.join('", "')}"는 찾지 못해서 제외되지 않았어요.` : ''
-          addBotMessage({ text: `✅ ${genderLabel} ${targetIds.length}마리 피딩 기록이 저장됐어요!${excludeNote}${notFoundNote}` })
+          addBotMessage({ text: `${genderLabel} ${targetIds.length}마리 피딩 기록이 저장됐어요!${excludeNote}${notFoundNote}` })
         } else {
-          addBotMessage({ text: '피딩 기록 중 오류가 발생했어요. 다시 시도해주세요.' })
+          addBotMessage({ text: `피딩 기록 중 오류가 발생했어요. (${result.error ?? '알 수 없는 오류'})` })
         }
         startRecording()
         break
@@ -339,9 +339,9 @@ export function AiAssistant({ open, onOpenChange }: AiAssistantProps) {
     pendingActionRef.current = null
 
     if (result.success) {
-      addBotMessage({ text: `✅ ${animal.name || animal.uniqueId}의 피딩 기록이 저장됐어요!` })
+      addBotMessage({ text: `${animal.name || animal.uniqueId}의 피딩 기록이 저장됐어요!` })
     } else {
-      addBotMessage({ text: `피딩 기록 중 오류가 발생했어요. 다시 시도해주세요.` })
+      addBotMessage({ text: `피딩 기록 중 오류가 발생했어요. (${result.error ?? '알 수 없는 오류'})` })
     }
     startRecording()
   }
