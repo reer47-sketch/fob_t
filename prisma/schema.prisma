@@ -1,0 +1,776 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// ============================================
+// 테넌트 (고객사/샵)
+// ============================================
+model Tenant {
+  id        String       @id @default(cuid())
+  name      String // 샵명
+  slug      String       @unique // URL-safe 식별자
+  shopCode  String?      @unique @map("shop_code")
+  address   String? // 주소
+  status    TenantStatus @default(ACTIVE)
+  createdAt DateTime     @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime     @updatedAt @map("updated_at") @db.Timestamptz
+
+  users          User[]
+  animals        Animal[]
+  customers      Customer[]
+  labelTemplates LabelTemplate[]
+  blogs          Blog[]
+  tenantCodes    TenantCode[]
+  zones          Zone[]
+  pairings       Pairing[]
+
+  @@map("tenants")
+}
+
+enum TenantStatus {
+  ACTIVE
+  SUSPENDED
+  DELETED
+}
+
+// ============================================
+// 사용자 (Supabase Auth와 연동)
+// ============================================
+model User {
+  id     String     @id // Supabase Auth UUID
+  email  String     @unique
+  role   UserRole
+  status UserStatus @default(PENDING)
+
+  // Client 정보
+  tenantId     String? @map("tenant_id")
+  tenant       Tenant? @relation(fields: [tenantId], references: [id])
+  name         String? // 담당자명
+  phone        String? // 연락처
+  profileImage String? @map("profile_image") // 프로필 이미지 URL
+
+  // 승인 관련
+  rejectionReason String?   @map("rejection_reason") // 거부 사유
+  approvedAt      DateTime? @map("approved_at") @db.Timestamptz
+  approvedById    String?   @map("approved_by_id") // 승인한 관리자 ID
+
+  // 약관 동의
+  termsAgreed          Boolean   @default(false) @map("terms_agreed") // 이용약관 동의
+  privacyAgreed        Boolean   @default(false) @map("privacy_agreed") // 개인정보처리방침 동의
+  dataCollectionAgreed Boolean   @default(false) @map("data_collection_agreed") // 개인정보수집 및 이용 동의
+  marketingAgreed      Boolean   @default(false) @map("marketing_agreed") // 마케팅 동의 (선택)
+  agreedAt             DateTime? @map("agreed_at") @db.Timestamptz // 동의 일시
+
+  // 플랜 (유료 기능 접근 제어)
+  plan          UserPlan  @default(FREE)
+  planUpdatedAt DateTime? @map("plan_updated_at") @db.Timestamptz
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  @@index([tenantId])
+  @@index([status])
+  @@index([role])
+  @@map("users")
+}
+
+enum UserRole {
+  ADMIN // 시스템 관리자 (솔루션 공급업체)
+  BREEDER // 브리더 (샵 사장님)
+  CLIENT // 샵 고객 (확장성을 위해 유지, 별도 로그인 미제공)
+}
+
+enum UserStatus {
+  PENDING // 승인 대기
+  ACTIVE // 활성
+  REJECTED // 거부
+  SUSPENDED // 정지
+  DELETED // 삭제
+}
+
+enum UserPlan {
+  FREE // 무료
+  PRO // 유료 (일괄등록/편집 사용 가능)
+  PREMIUM // 프리미엄 (추후 확장)
+}
+
+// ============================================
+// 도마뱀 개체 관리 - Enums
+// ============================================
+
+// 성별
+enum Gender {
+  MALE // 수컷
+  FEMALE // 암컷
+  UNKNOWN // 미확인
+}
+
+// 입양/해칭 구분
+enum AcquisitionType {
+  ADOPTION // 입양
+  HATCHING // 해칭
+}
+
+// 개체 퀄리티
+enum Quality {
+  S // S등급
+  A // A등급
+  B // B등급
+  C // C등급
+}
+
+// 부모 타입
+enum ParentType {
+  FATHER // 부
+  MOTHER // 모
+}
+
+// 코드 카테고리
+enum CodeCategory {
+  CATEGORY // 카테고리 (1뎁스)
+  SPECIES // 종 (2뎁스)
+  MORPH // 모프 (3뎁스)
+  TRAIT // 형질 (3뎁스)
+  COLOR // 색깔 (3뎁스)
+}
+
+// 먹이 종류
+enum FoodType {
+  CRICKET // 귀뚜라미
+  MEALWORM // 밀웜
+  FEED // 사료
+  VEGETABLE // 야채/과일
+  MOUSE // 쥐
+  FROZEN_CHICK // 냉짱
+  FRUIT_FLY // 초파리
+  OTHER // 기타
+}
+
+// ============================================
+// 코드 관리 (종/모프/형질/색깔)
+// ============================================
+model Code {
+  id             String       @id @default(cuid())
+  category       CodeCategory // 코드 카테고리
+  code           String // 코드 (예: CG, RD)
+  name           String // 이름 (예: 크레스티드 게코, 레드)
+  scientificName String?      @map("scientific_name") // 학명 (종 카테고리인 경우 필수, 나라 신고용)
+  description    String? // 설명
+  displayOrder   Int          @default(0) @map("display_order") // 표시 순서
+
+  // 계층 구조 (1뎁스: parentId null, 2뎁스: parentId 존재)
+  parentId String? @map("parent_id")
+  parent   Code?   @relation("CodeHierarchy", fields: [parentId], references: [id], onDelete: Cascade)
+  children Code[]  @relation("CodeHierarchy")
+
+  isDel     Boolean  @default(false) @map("is_del") // 삭제 여부
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  // 개체와의 관계
+  animalCodes AnimalCode[]
+  tenantCodes TenantCode[]
+
+  @@unique([category, code, parentId])
+  @@index([category])
+  @@index([parentId])
+  @@index([isDel])
+  @@map("codes")
+}
+
+// ============================================
+// 개체 기본 정보
+// ============================================
+model Animal {
+  id String @id @default(cuid())
+
+  // 샵 정보
+  tenantId String @map("tenant_id")
+  tenant   Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  // 기본 정보
+  name            String? // 개체 이름
+  uniqueId        String          @map("unique_id") // 고유개체ID (자동 생성)
+  gender          Gender // 성별
+  acquisitionType AcquisitionType @map("acquisition_type") // 입양/해칭
+  acquisitionDate DateTime        @map("acquisition_date") @db.Timestamptz // 등록일 (uniqueId 생성 기준)
+  hatchDate       DateTime?       @map("hatch_date") @db.Timestamptz // 해칭일 (모든 경우 수정 가능)
+  deathDate       DateTime?       @map("death_date") @db.Timestamptz // 폐사일
+
+  // QR 코드
+  qrCodeUrl String? @map("qr_code_url") // QR 코드가 가리킬 URL
+
+  // 상태
+  isDel        Boolean  @default(false) @map("is_del") // 삭제 여부
+  isPublic     Boolean  @default(false) @map("is_public") // Guest 페이지 공개 여부
+  isBreeding   Boolean  @default(false) @map("is_breeding") // 브리딩 대상 여부
+  parentPublic Boolean  @default(false) @map("parent_public") // 부모 정보 공개 여부
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt    DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  // 관계
+  codes    AnimalCode[] // 코드 (종, 모프, 형질, 색깔)
+  detail   AnimalDetail? // 상세 정보
+  parents  AnimalParent[] @relation("AnimalParents") // 부모 (나의 부모들)
+  children AnimalParent[] @relation("ParentAnimals") // 자식 (내가 부모인 관계들)
+  images   AnimalImage[] // 사진
+  feedings Feeding[] // 피딩 기록
+  adoption Adoption? // 분양 기록
+
+  // 브리딩 관계
+  rackCells      RackCell[] // 렉사 배치
+  pairingsFemale Pairing[]  @relation("PairingFemale") // 암컷으로 참여한 페어링
+  pairingsMale   Pairing[]  @relation("PairingMale") // 수컷으로 참여한 페어링
+  eggsAsFemale   Egg[]      @relation("EggFemale") // 산란한 알
+  eggsAsMale     Egg[]      @relation("EggSire") // 아비(1순위)로 등록된 알
+  eggsAsMale2    Egg[]      @relation("EggSire2") // 아비(2순위)로 등록된 알
+  hatchedFromEgg Egg?       @relation("HatchedFromEgg") // 이 개체가 부화된 알
+
+  @@unique([tenantId, uniqueId])
+  @@index([tenantId])
+  @@index([uniqueId])
+  @@index([isDel])
+  @@index([isPublic])
+  @@index([isBreeding])
+  @@map("animals")
+}
+
+// ============================================
+// 개체-코드 관계 (다대다)
+// ============================================
+model AnimalCode {
+  id String @id @default(cuid())
+
+  animalId String @map("animal_id")
+  animal   Animal @relation(fields: [animalId], references: [id], onDelete: Cascade)
+
+  codeId String @map("code_id")
+  code   Code   @relation(fields: [codeId], references: [id], onDelete: Cascade)
+
+  // 대표 모프 여부 (MORPH 카테고리인 경우만 true 가능)
+  isPrimary Boolean @default(false) @map("is_primary")
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  @@unique([animalId, codeId])
+  @@index([animalId])
+  @@index([codeId])
+  @@index([animalId, isPrimary])
+  @@map("animal_codes")
+}
+
+// ============================================
+// 개체 상세 정보
+// ============================================
+model AnimalDetail {
+  id String @id @default(cuid())
+
+  animalId String @unique @map("animal_id")
+  animal   Animal @relation(fields: [animalId], references: [id], onDelete: Cascade)
+
+  // 개체 외관 정보
+  currentSize      String?  @map("current_size") // 현재 크기 (텍스트)
+  tailStatus       String?  @map("tail_status") // 꼬리 상태 (자유 텍스트)
+  patternType      String?  @map("pattern_type") // 무늬 유형 (자유 텍스트)
+  distinctiveMarks String?  @map("distinctive_marks") // 특이한 표식 설명
+  quality          Quality? // 개체 퀄리티
+
+  // 개체 건강 정보
+  healthStatus String? @map("health_status") // 현재 건강 상태 (메모)
+  specialNeeds String? @map("special_needs") // 특별한 필요사항 (메모)
+  isMating     Boolean @default(false) @map("is_mating") // 프루븐
+
+  // 서식지 정보
+  cageInfo     String? @map("cage_info") // 케이지 정보 (자유 텍스트)
+  flooringInfo String? @map("flooring_info") // 바닥재 정보 (자유 텍스트)
+  habitatNotes String? @map("habitat_notes") // 서식지 기타 사항 (메모)
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  @@map("animal_details")
+}
+
+// ============================================
+// 개체 부모 관계
+// ============================================
+model AnimalParent {
+  id String @id @default(cuid())
+
+  // 자식 개체
+  animalId String @map("animal_id")
+  animal   Animal @relation("AnimalParents", fields: [animalId], references: [id], onDelete: Cascade)
+
+  // 부모 개체
+  parentId String @map("parent_id")
+  parent   Animal @relation("ParentAnimals", fields: [parentId], references: [id], onDelete: Cascade)
+
+  parentType ParentType @map("parent_type") // FATHER or MOTHER
+  isPublic   Boolean    @default(false) @map("is_public") // Guest 페이지 공개 여부
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  @@unique([animalId, parentId])
+  @@index([animalId])
+  @@index([parentId])
+  @@index([isPublic])
+  @@map("animal_parents")
+}
+
+// ============================================
+// 개체 사진
+// ============================================
+model AnimalImage {
+  id String @id @default(cuid())
+
+  animalId String @map("animal_id")
+  animal   Animal @relation(fields: [animalId], references: [id], onDelete: Cascade)
+
+  imageUrl     String  @map("image_url") // Cloudflare R2 URL
+  displayOrder Int     @default(0) @map("display_order") // 표시 순서 (최대 3장)
+  description  String? // 사진 설명
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  @@index([animalId])
+  @@map("animal_images")
+}
+
+// ============================================
+// 피딩 관리
+// ============================================
+model Feeding {
+  id Int @id @default(autoincrement())
+
+  animalId String @map("animal_id")
+  animal   Animal @relation(fields: [animalId], references: [id], onDelete: Cascade)
+
+  foodType    FoodType @map("food_type") // 먹이 종류
+  superfood   Boolean  @default(false) // 슈퍼푸드 여부
+  feedingDate DateTime @map("feeding_date") @db.Timestamptz // 피딩 일시
+  quantity    String? // 급여량 (자유 텍스트)
+  memo        String? // 메모
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  @@index([animalId])
+  @@index([feedingDate])
+  @@map("feedings")
+}
+
+// ============================================
+// 고객 관리
+// ============================================
+model Customer {
+  id String @id @default(cuid())
+
+  // 샵 정보
+  tenantId String @map("tenant_id")
+  tenant   Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  // 고객 정보
+  name           String // 고객명
+  phone          String // 전화번호
+  address        String? // 자택 주소
+  privacyConsent Boolean @default(false) @map("privacy_consent") // 개인정보 수집 및 이용 동의
+  isDel          Boolean @default(false) @map("is_del") // 삭제 여부
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  // 관계
+  adoptions Adoption[] // 분양 기록
+
+  @@index([tenantId])
+  @@index([phone])
+  @@map("customers")
+}
+
+// ============================================
+// 분양 관리 (샵: 분양 / 고객: 입양)
+// ============================================
+model Adoption {
+  id String @id @default(cuid())
+
+  // 분양 정보
+  customerId String   @map("customer_id")
+  customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  animalId String @unique @map("animal_id")
+  animal   Animal @relation(fields: [animalId], references: [id], onDelete: Cascade)
+
+  adoptionDate DateTime @map("adoption_date") @db.Timestamptz // 분양일
+  price        Int // 분양 금액 (원)
+  isReported   Boolean  @default(false) @map("is_reported") // 양수양도 신고 여부
+
+  // 양수양도 신고 정보
+  transferPurpose String? @map("transfer_purpose") // 양도 용도 (수기 작성)
+  transferReason  String? @map("transfer_reason") // 양도 사유 (수기 작성)
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  @@index([customerId])
+  @@index([animalId])
+  @@index([adoptionDate])
+  @@map("adoptions")
+}
+
+// ============================================
+// 라벨 템플릿
+// content 예시: [{ "order": 1, "field": "species" }, { "order": 2, "field": "morph" }]
+// ============================================
+model LabelTemplate {
+  id String @id @default(cuid())
+
+  // 테넌트 정보
+  tenantId String @map("tenant_id")
+  tenant   Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  content Json // 템플릿 내용 (JSON 형태로 저장)
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  @@index([tenantId])
+  @@map("label_templates")
+}
+
+// ============================================
+// 블로그/게시판 관리
+// ============================================
+
+enum TargetScope {
+  ALL // 전체 공개
+  MEMBER_ONLY // 회원 전용
+}
+
+model Blog {
+  id       String @id @default(cuid())
+  tenantId String @map("tenant_id")
+  tenant   Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  title        String
+  slug         String  @unique
+  content      Json // Tiptap JSON 데이터 저장
+  htmlContent  String? @map("html_content") // SEO 및 빠른 렌더링을 위한 HTML 캐시
+  thumbnailUrl String? @map("thumbnail_url") // 썸네일 이미지 경로
+
+  // 상태 및 설정
+  isNotice    Boolean     @default(false) @map("is_notice")
+  targetScope TargetScope @default(ALL) @map("target_scope")
+
+  // 통계 및 게시 관리
+  views       Int       @default(0)
+  publishedAt DateTime  @default(now()) @map("published_at") @db.Timestamptz
+  expiredAt   DateTime? @map("expired_at") @db.Timestamptz
+
+  // 관계 설정
+  attachments Attachment[]
+  tags        BlogTag[]
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  @@index([tenantId])
+  @@index([publishedAt, targetScope])
+  @@map("blogs")
+}
+
+model Tag {
+  id    String    @id @default(cuid())
+  name  String    @unique
+  slug  String    @unique
+  blogs BlogTag[]
+
+  @@map("tags")
+}
+
+// 다대다 관계를 위한 중간 테이블 (Explicit Many-to-Many)
+model BlogTag {
+  blogId String @map("blog_id")
+  tagId  String @map("tag_id")
+  blog   Blog   @relation(fields: [blogId], references: [id], onDelete: Cascade)
+  tag    Tag    @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([blogId, tagId])
+  @@map("blog_tags")
+}
+
+model Attachment {
+  id        String   @id @default(cuid())
+  fileName  String   @map("file_name")
+  fileUrl   String   @map("file_url")
+  fileSize  Int      @map("file_size")
+  mimeType  String   @map("mime_type")
+  blogId    String   @map("blog_id")
+  blog      Blog     @relation(fields: [blogId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  @@map("attachments")
+}
+
+// ============================================
+// 배너 관리
+// ============================================
+model Banner {
+  id String @id @default(cuid())
+
+  title        String // 배너 제목
+  imageUrl     String  @map("image_url") // 배너 이미지 URL
+  linkUrl      String? @map("link_url") // 클릭 시 이동할 URL
+  displayOrder Int     @default(0) @map("display_order") // 표시 순서
+
+  // 상태 및 기간 설정
+  isActive  Boolean   @default(true) @map("is_active") // 활성화 여부
+  startDate DateTime? @map("start_date") @db.Timestamptz // 노출 시작일
+  endDate   DateTime? @map("end_date") @db.Timestamptz // 노출 종료일
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  @@index([isActive])
+  @@index([displayOrder])
+  @@index([startDate, endDate])
+  @@map("banners")
+}
+
+// ============================================
+// 브리딩 관리 - Enums
+// ============================================
+
+enum PairingStatus {
+  WAITING // 대기 (등록됨, 합사 전)
+  MATING // 메이팅 중
+  LAYING_SOON // 산란 임박
+  LAID // 산란 완료
+  DONE // 시즌 완료
+  COOLING // 쿨링 (완료 후 3개월 경과, 자동 전환)
+}
+
+enum EggStatus {
+  INCUBATING // 인큐중
+  HATCHED // 부화 성공
+  FAILED // 실패
+}
+
+enum FertileStatus {
+  UNKNOWN // 미확인
+  FERTILE // 유정
+  INFERTILE // 무정
+}
+
+// ============================================
+// 구역 (Zone) — 물리적 공간 단위
+// ============================================
+model Zone {
+  id String @id @default(cuid())
+
+  tenantId String @map("tenant_id")
+  tenant   Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  name         String // 구역명 (A, B, ...)
+  description  String?
+  displayOrder Int     @default(0) @map("display_order")
+
+  racks Rack[]
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  @@index([tenantId])
+  @@map("zones")
+}
+
+// ============================================
+// 렉사 (Rack) — 구역 안의 사육장 (행 x 열 그리드)
+// ============================================
+model Rack {
+  id String @id @default(cuid())
+
+  zoneId String @map("zone_id")
+  zone   Zone   @relation(fields: [zoneId], references: [id], onDelete: Cascade)
+
+  name         String // 렉사명 (렉사 1, 렉사 2, ...)
+  rows         Int // 행 수
+  cols         Int // 열 수
+  displayOrder Int    @default(0) @map("display_order")
+
+  cells RackCell[]
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  @@index([zoneId])
+  @@map("racks")
+}
+
+// ============================================
+// 렉사 칸 (RackCell) — 렉사의 개별 칸, 개체 1마리 배정
+// ============================================
+model RackCell {
+  id String @id @default(cuid())
+
+  rackId String @map("rack_id")
+  rack   Rack   @relation(fields: [rackId], references: [id], onDelete: Cascade)
+
+  row Int // 행 번호
+  col Int // 열 번호
+
+  animalId String? @map("animal_id")
+  animal   Animal? @relation(fields: [animalId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  @@unique([rackId, row, col])
+  @@index([rackId])
+  @@index([animalId])
+  @@map("rack_cells")
+}
+
+// ============================================
+// 페어링 (Pairing) — 짝짓기 관리
+// ============================================
+model Pairing {
+  id String @id @default(cuid())
+
+  tenantId String @map("tenant_id")
+  tenant   Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  femaleId String @map("female_id")
+  female   Animal @relation("PairingFemale", fields: [femaleId], references: [id], onDelete: Cascade)
+
+  maleId String @map("male_id")
+  male   Animal @relation("PairingMale", fields: [maleId], references: [id], onDelete: Cascade)
+
+  date   DateTime      @db.Timestamptz // 페어링 시작일
+  status PairingStatus @default(MATING)
+  memo   String?
+
+  // 시즌 완료일 (쿨링 자동 전환 계산용)
+  doneAt DateTime? @map("done_at") @db.Timestamptz
+
+  // 쿨링 중 무정란 산란 시 N일 후 시즌 종료(DONE) 예약 시각 — 경과하면 서버에서 DONE으로 마감
+  endScheduledAt DateTime? @map("end_scheduled_at") @db.Timestamptz
+
+  // 관리자가 "시즌 종료" 액션으로 강제 쿨링 진입한 시각 — derive에서 1순위로 COOLING 표시.
+  // 유정란 산란 시 자동 해제(null)되어 정상 흐름 복귀.
+  manuallyCoolingAt DateTime? @map("manually_cooling_at") @db.Timestamptz
+
+  eggs  Egg[] @relation("EggPairing") // 1순위 페어링으로 등록된 알
+  eggs2 Egg[] @relation("EggPairing2") // 2순위 페어링으로 등록된 알
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  @@index([tenantId])
+  @@index([femaleId])
+  @@index([maleId])
+  @@index([status])
+  @@map("pairings")
+}
+
+// ============================================
+// 알 (Egg) — 개별 알 관리
+// ============================================
+model Egg {
+  id String @id @default(cuid())
+
+  // 페어 없이 산란 기록 가능 (무정란 단독 기록 등) — nullable
+  pairingId String?  @map("pairing_id")
+  pairing   Pairing? @relation("EggPairing", fields: [pairingId], references: [id], onDelete: Cascade)
+
+  femaleId String @map("female_id")
+  female   Animal @relation("EggFemale", fields: [femaleId], references: [id], onDelete: Cascade)
+
+  // 1순위 아비 — 페어 없는 산란은 null
+  maleId String? @map("male_id")
+  male   Animal? @relation("EggSire", fields: [maleId], references: [id], onDelete: Cascade)
+
+  // 2순위 페어링/아비 (선택) — 알이 어느 페어에서 나왔는지 확실하지 않을 때
+  // 한 알에 페어링을 최대 2개까지 등록 가능
+  pairingId2 String?  @map("pairing_id_2")
+  pairing2   Pairing? @relation("EggPairing2", fields: [pairingId2], references: [id], onDelete: SetNull)
+  maleId2    String?  @map("male_id_2")
+  male2      Animal?  @relation("EggSire2", fields: [maleId2], references: [id], onDelete: SetNull)
+
+  layDate DateTime @map("lay_date") @db.Timestamptz // 산란일
+
+  // 캔들링
+  checked       Boolean       @default(false) // 캔들링 확인 완료
+  fertileStatus FertileStatus @default(UNKNOWN) @map("fertile_status")
+
+  // 인큐 환경
+  humidity  Int? // 습도 (%)
+  substrate String? // 바닥재 (해치라이트, 버미큘라이트 등)
+
+  // 상태
+  status    EggStatus @default(INCUBATING)
+  hatchDate DateTime? @map("hatch_date") @db.Timestamptz // 부화 성공일
+  memo      String?
+
+  // 부화 후 등록된 개체 연결
+  hatchedAnimalId String? @unique @map("hatched_animal_id")
+  hatchedAnimal   Animal? @relation("HatchedFromEgg", fields: [hatchedAnimalId], references: [id], onDelete: SetNull)
+
+  temperatureLogs TemperatureLog[]
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  @@index([pairingId])
+  @@index([pairingId2])
+  @@index([femaleId])
+  @@index([maleId])
+  @@index([maleId2])
+  @@index([status])
+  @@index([layDate])
+  @@map("eggs")
+}
+
+// ============================================
+// 온도 이력 (TemperatureLog) — 인큐 온도 변경 추적
+// ============================================
+model TemperatureLog {
+  id Int @id @default(autoincrement())
+
+  eggId String @map("egg_id")
+  egg   Egg    @relation(fields: [eggId], references: [id], onDelete: Cascade)
+
+  temp      Float // 온도 (°C, 0.5 단위)
+  startDate DateTime @map("start_date") @db.Timestamptz // 이 온도 시작일
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  @@index([eggId])
+  @@map("temperature_logs")
+}
+
+// ============================================
+// 테넌트별 종 설정 (테넌트 ↔ 코드)
+// ============================================
+model TenantCode {
+  id Int @id @default(autoincrement())
+
+  tenantId String @map("tenant_id")
+  tenant   Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  codeId String @map("code_id")
+  code   Code   @relation(fields: [codeId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  @@unique([tenantId, codeId])
+  @@index([tenantId])
+  @@index([codeId])
+  @@map("tenant_codes")
+}
