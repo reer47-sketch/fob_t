@@ -177,45 +177,41 @@ export default function HelpPage() {
             <h2 className="text-lg font-semibold">메이팅 관리</h2>
           </div>
           <p className="text-sm text-muted-foreground mb-4">
-            수컷·암컷 쌍을 등록하고 메이팅 날짜·횟수를 기록합니다.
+            렉사 케이지(존/렉/칸) 구조로 개체 위치를 관리하고 메이팅·산란 이력을 기록합니다.
           </p>
 
           <div className="mb-4">
             <p className="text-xs font-semibold text-muted-foreground mb-2">메이팅 상태</p>
             <div className="flex flex-wrap gap-1.5">
-              {[
-                { label: '메이팅 대기', color: 'secondary' },
-                { label: '산란 중', color: 'secondary' },
-                { label: '산란 임박', color: 'secondary' },
-                { label: '쿨링', color: 'secondary' },
-              ].map(s => (
-                <Badge key={s.label} variant="secondary" className="text-xs">{s.label}</Badge>
+              {['메이팅 대기', '산란 중', '산란 임박', '쿨링'].map(s => (
+                <Badge key={s} variant="secondary" className="text-xs">{s}</Badge>
               ))}
             </div>
           </div>
 
           <Accordion type="multiple">
             <AccordionItem value="mating-basic">
-              <AccordionTrigger className="text-sm">기본 메이팅 등록</AccordionTrigger>
+              <AccordionTrigger className="text-sm">메이팅 등록 방법</AccordionTrigger>
               <AccordionContent className="space-y-2">
-                <Step n={1}>메이팅 관리 메뉴에서 <strong>새 메이팅 등록</strong>을 클릭합니다.</Step>
-                <Step n={2}>암컷 개체를 선택하고, 수컷은 직접 선택하거나 <strong>QR 스캔</strong> 버튼으로 스캔합니다.</Step>
-                <Step n={3}>메이팅 날짜와 횟수를 입력 후 저장합니다.</Step>
-                <Step n={4}>산란 후 <strong>산란 등록</strong> 버튼으로 알 관리와 연결합니다.</Step>
+                <Step n={1}>메이팅 관리 메뉴에서 암컷이 위치한 <strong>렉사 케이지(존/렉/칸)</strong>를 선택합니다.</Step>
+                <Step n={2}><strong>+ 추가</strong> 버튼을 눌러 메이팅 신규 등록 화면을 엽니다.</Step>
+                <Step n={3}>수컷 개체를 직접 선택하거나 <strong>QR 스캔</strong> 버튼으로 스캔하여 지정합니다.</Step>
+                <Step n={4}>날짜를 지정하고 저장합니다.</Step>
+                <Step n={5}>산란 후 <strong>산란 등록</strong> 버튼으로 알 관리와 연결합니다.</Step>
               </AccordionContent>
             </AccordionItem>
             <AccordionItem value="mating-seed-change">
               <AccordionTrigger className="text-sm">씨바꿈 처리 방법</AccordionTrigger>
               <AccordionContent className="space-y-2">
                 <Step n={1}>새 수컷과의 메이팅을 새로 등록합니다.</Step>
-                <Step n={2}>산란 등록 시 수컷 개체를 선택할 때, 가장 최근 메이팅 수컷과 이전 수컷 <strong>모두 선택</strong>할 수 있습니다.</Step>
+                <Step n={2}>산란 등록 시 수컷을 선택할 때, <strong>새로 메이팅한 수컷</strong>과 <strong>가장 최근 메이팅한 수컷</strong>을 모두 선택할 수 있습니다.</Step>
                 <TipBox>부모 불확실 케이스를 정확히 기록하기 위해 두 수컷 모두 선택해두는 것을 권장합니다.</TipBox>
               </AccordionContent>
             </AccordionItem>
             <AccordionItem value="mating-no-male">
               <AccordionTrigger className="text-sm">수컷 없이 산란 등록</AccordionTrigger>
-              <AccordionContent className="text-sm text-muted-foreground space-y-2">
-                <p>메이팅 없이도 산란 등록이 가능합니다. 무정란이 나온 경우 산란 등록 후 상태를 <strong>메이팅 대기</strong>로 변경하세요.</p>
+              <AccordionContent className="text-sm text-muted-foreground">
+                메이팅 없이도 산란 등록이 가능합니다. 무정란이 나온 경우 산란 등록 후 상태를 <strong>메이팅 대기</strong>로 변경하세요.
               </AccordionContent>
             </AccordionItem>
           </Accordion>
