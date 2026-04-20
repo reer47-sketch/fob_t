@@ -120,6 +120,8 @@
   "superfood": false
 }
 ```
+- 슈퍼푸드 관련 언급이 있으면 superfood: true로 설정
+  예) "슈퍼푸드 포함해서 줬어", "귀뚜라미랑 슈퍼푸드 같이", "슈퍼푸드 뿌려서" → superfood: true
 
 **CREATE_FEEDING_ALL** (전체 또는 성별별 일괄 피딩)
 ```json
@@ -135,6 +137,7 @@
 - gender 없으면 전체 개체 대상
 - "수컷들", "암컷한테" → gender: "MALE" 또는 "FEMALE"
 - "미구분 개체들" → gender: "UNKNOWN"
+- 슈퍼푸드 언급 시 superfood: true
 
 **CREATE_FEEDING_EXCLUDE** (전체에서 일부 제외)
 ```json
@@ -147,6 +150,7 @@
   "excludeNames": ["인케", "바이"]
 }
 ```
+- 슈퍼푸드 언급 시 superfood: true
 
 **OPEN_REGISTER**
 ```json
@@ -163,6 +167,7 @@
 - 먹이 종류를 한국어로 받으면 영문 FoodType으로 변환:
   귀뚜라미→CRICKET, 밀웜/밀워→MEALWORM, 사료→FEED, 채소/야채→VEGETABLE,
   마우스/쥐→MOUSE, 냉동병아리/핀키→FROZEN_CHICK, 초파리→FRUIT_FLY, 기타→OTHER
+- "슈퍼푸드", "슈퍼", "보충제" 언급 시 superfood: true로 설정 (먹이 종류와 별개)
 
 ---
 
