@@ -101,7 +101,7 @@ export default function HelpPage() {
           </p>
           <div className="grid sm:grid-cols-3 gap-3 mb-4">
             {[
-              { title: '개체 등록', desc: '종·성별·모프·해칭 여부 등 상세 정보 입력' },
+              { title: '개체 등록', desc: '사진 업로드 또는 촬영으로 정보 자동 인식 후 등록' },
               { title: '수정 / 삭제', desc: '개체 상세 페이지에서 정보 수정 및 삭제' },
               { title: 'QR 코드 자동 생성', desc: '등록된 개체마다 고유 QR 코드 자동 발급' },
             ].map(c => (
@@ -122,10 +122,11 @@ export default function HelpPage() {
             <AccordionItem value="register">
               <AccordionTrigger className="text-sm">개체 등록 방법</AccordionTrigger>
               <AccordionContent className="space-y-2">
-                <Step n={1}>사이드바에서 <strong>개체 관리</strong>를 클릭합니다.</Step>
-                <Step n={2}>우측 상단 <strong>개체 등록</strong> 버튼을 클릭합니다.</Step>
-                <Step n={3}>종, 성별, 해칭/입양 여부, 모프, 이름 등을 입력합니다.</Step>
-                <Step n={4}><strong>저장</strong>을 누르면 고유 ID와 QR 코드가 자동 생성됩니다.</Step>
+                <Step n={1}>메인 페이지 하단 또는 메뉴 바 하단의 <strong>개체 등록</strong> 버튼을 클릭합니다.</Step>
+                <Step n={2}>찍어둔 사진을 업로드(PC는 드래그 앤 드롭, 휴대폰은 사진첩 선택)하거나 카메라로 직접 촬영합니다.</Step>
+                <Step n={3}>사진에서 인식된 정보를 확인하고 종, 성별, 해칭/입양 여부, 모프, 이름 등을 입력합니다.</Step>
+                <Step n={4}>해칭 개체인 경우 <strong>부/모 정보를 필수로 연결</strong>해야 합니다.</Step>
+                <Step n={5}><strong>저장</strong>을 누르면 고유 ID와 QR 코드가 자동 생성됩니다.</Step>
               </AccordionContent>
             </AccordionItem>
           </Accordion>
