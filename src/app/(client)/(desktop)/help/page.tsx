@@ -1,7 +1,7 @@
 import {
   PawPrint, UtensilsCrossed, Heart, Egg, Users, BarChart3,
   QrCode, FileText, Bot, ChevronRight, AlertCircle, Lightbulb,
-  RotateCcw, CheckCircle2,
+  RotateCcw, CheckCircle2, CalendarRange,
 } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -15,6 +15,7 @@ const SECTIONS = [
   { id: 'feeding',    icon: UtensilsCrossed,   label: '피딩 기록' },
   { id: 'mating',     icon: Heart,             label: '메이팅 관리' },
   { id: 'incubation', icon: Egg,               label: '알 관리' },
+  { id: 'calendar',   icon: CalendarRange,     label: '브리딩 캘린더' },
   { id: 'customers',  icon: Users,             label: '고객 관리' },
   { id: 'sales',      icon: BarChart3,         label: '판매이력' },
   { id: 'qr',         icon: QrCode,            label: 'QR 스캔' },
@@ -275,6 +276,74 @@ export default function HelpPage() {
               </AccordionContent>
             </AccordionItem>
           </Accordion>
+        </section>
+
+        <Separator />
+
+        {/* ── 브리딩 캘린더 ── */}
+        <section>
+          <SectionAnchor id="calendar" />
+          <div className="flex items-center gap-2 mb-4">
+            <CalendarRange className="size-5 text-primary" />
+            <h2 className="text-lg font-semibold">브리딩 캘린더</h2>
+          </div>
+          <p className="text-sm text-muted-foreground mb-4">
+            메이팅·산란·부화·판매 등 브리딩 전 과정을 달력으로 한눈에 확인합니다.
+          </p>
+
+          <div className="mb-4">
+            <p className="text-xs font-semibold text-muted-foreground mb-2">이벤트 색상</p>
+            <div className="flex flex-wrap gap-1.5">
+              {[
+                { label: '입양', cls: 'bg-green-100 text-green-700' },
+                { label: '해칭', cls: 'bg-green-100 text-green-700' },
+                { label: '판매', cls: 'bg-blue-100 text-blue-700' },
+                { label: '폐사', cls: 'bg-gray-100 text-gray-600' },
+                { label: '메이팅', cls: 'bg-pink-100 text-pink-700' },
+                { label: '산란', cls: 'bg-yellow-100 text-yellow-700' },
+                { label: '부화', cls: 'bg-sky-100 text-sky-700' },
+                { label: '부화 예정', cls: 'bg-violet-100 text-violet-700 border border-dashed border-violet-300' },
+                { label: '태스크', cls: 'bg-orange-100 text-orange-700' },
+              ].map(s => (
+                <span key={s.label} className={`text-xs px-2 py-0.5 rounded-full font-medium ${s.cls}`}>{s.label}</span>
+              ))}
+            </div>
+          </div>
+
+          <Accordion type="multiple">
+            <AccordionItem value="calendar-basic">
+              <AccordionTrigger className="text-sm">캘린더 기본 사용법</AccordionTrigger>
+              <AccordionContent className="space-y-2">
+                <Step n={1}>사이드바에서 <strong>브리딩 캘린더</strong>를 선택합니다.</Step>
+                <Step n={2}>상단 탭에서 <strong>월 뷰</strong> 또는 <strong>주 뷰</strong>를 선택합니다.</Step>
+                <Step n={3}>날짜 셀을 클릭하면 우측 패널에 해당 날짜의 상세 이벤트가 표시됩니다.</Step>
+                <Step n={4}>신규 등록 개체 옆의 링크 아이콘을 클릭하면 해당 개체 상세 페이지로 이동합니다.</Step>
+              </AccordionContent>
+            </AccordionItem>
+            <AccordionItem value="calendar-task">
+              <AccordionTrigger className="text-sm">태스크 등록 및 관리</AccordionTrigger>
+              <AccordionContent className="space-y-2">
+                <Step n={1}>날짜를 클릭해 우측 패널을 열고 <strong>태스크 추가</strong>를 클릭합니다.</Step>
+                <Step n={2}>제목, 날짜, 카테고리(청소 / 렉사 설치 / 먹이 준비 / 건강 체크 / 기타)를 입력합니다.</Step>
+                <Step n={3}>완료 시 체크박스를 클릭하면 완료 처리되고, 휴지통 아이콘으로 삭제할 수 있습니다.</Step>
+              </AccordionContent>
+            </AccordionItem>
+            <AccordionItem value="calendar-google">
+              <AccordionTrigger className="text-sm">Google Calendar 연동</AccordionTrigger>
+              <AccordionContent className="space-y-2">
+                <Step n={1}>상단 <strong>구글 캘린더 연동</strong> 버튼을 클릭하고 구글 계정으로 승인합니다.</Step>
+                <Step n={2}>연동 후 <strong>구글 동기화</strong> 버튼을 클릭하면 부화 예정일과 태스크가 구글 캘린더로 전송됩니다.</Step>
+                <Step n={3}>연동을 해제하려면 <strong>연동 해제</strong> 버튼을 클릭합니다.</Step>
+                <TipBox>연동 해제 후 구글 캘린더에 이미 생성된 이벤트는 자동 삭제되지 않습니다. 구글 캘린더에서 직접 삭제하세요.</TipBox>
+              </AccordionContent>
+            </AccordionItem>
+          </Accordion>
+
+          <div className="mt-4">
+            <WarningBox>
+              7일 이상 피딩 기록이 없는 개체가 있으면 캘린더 상단에 <strong>경고 배너</strong>가 표시됩니다. 피딩 기록을 확인하세요.
+            </WarningBox>
+          </div>
         </section>
 
         <Separator />
