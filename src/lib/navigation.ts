@@ -9,6 +9,7 @@ import {
   Settings,
   BarChart3,
   Calendar,
+  CalendarRange,
   DollarSign,
   FileText,
   Image,
@@ -46,6 +47,11 @@ export const navItems: NavItem[] = [
     title: "피딩 캘린더",
     url: "/feeding-calendar",
     icon: Calendar,
+  },
+  {
+    title: "브리딩 캘린더",
+    url: "/calendar",
+    icon: CalendarRange,
   },
   {
     title: "메이팅 관리",

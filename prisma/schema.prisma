@@ -29,6 +29,7 @@ model Tenant {
   tenantCodes    TenantCode[]
   zones          Zone[]
   pairings       Pairing[]
+  calendarTasks  CalendarTask[]
 
   @@map("tenants")
 }
@@ -70,6 +71,11 @@ model User {
   // 플랜 (유료 기능 접근 제어)
   plan          UserPlan  @default(FREE)
   planUpdatedAt DateTime? @map("plan_updated_at") @db.Timestamptz
+
+  // Google Calendar 연동
+  googleAccessToken  String?   @map("google_access_token") @db.Text
+  googleRefreshToken String?   @map("google_refresh_token") @db.Text
+  googleTokenExpiry  DateTime? @map("google_token_expiry") @db.Timestamptz
 
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
   updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz
@@ -211,6 +217,7 @@ model Animal {
   isPublic     Boolean  @default(false) @map("is_public") // Guest 페이지 공개 여부
   isBreeding   Boolean  @default(false) @map("is_breeding") // 브리딩 대상 여부
   parentPublic Boolean  @default(false) @map("parent_public") // 부모 정보 공개 여부
+  bulkMeta     Json?    @map("bulk_meta") // 일괄 업로드 메타데이터
   createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz
   updatedAt    DateTime @updatedAt @map("updated_at") @db.Timestamptz
 
@@ -714,9 +721,11 @@ model Egg {
   substrate String? // 바닥재 (해치라이트, 버미큘라이트 등)
 
   // 상태
-  status    EggStatus @default(INCUBATING)
-  hatchDate DateTime? @map("hatch_date") @db.Timestamptz // 부화 성공일
-  memo      String?
+  status             EggStatus @default(INCUBATING)
+  hatchDate          DateTime? @map("hatch_date") @db.Timestamptz // 부화 성공일
+  expectedHatchDate  DateTime? @map("expected_hatch_date") @db.Timestamptz // 부화 예정일
+  googleEventId      String?   @map("google_event_id") // Google Calendar 이벤트 ID
+  memo               String?
 
   // 부화 후 등록된 개체 연결
   hatchedAnimalId String? @unique @map("hatched_animal_id")
@@ -773,4 +782,36 @@ model TenantCode {
   @@index([tenantId])
   @@index([codeId])
   @@map("tenant_codes")
+}
+
+// ============================================
+// 캘린더 태스크
+// ============================================
+model CalendarTask {
+  id       String       @id @default(cuid())
+  tenantId String       @map("tenant_id")
+  tenant   Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  title     String
+  date      DateTime     @db.Timestamptz
+  completed Boolean      @default(false)
+  category  TaskCategory @default(OTHER)
+  memo      String?
+
+  googleEventId String? @map("google_event_id") // Google Calendar 이벤트 ID
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  @@index([tenantId])
+  @@index([date])
+  @@map("calendar_tasks")
+}
+
+enum TaskCategory {
+  CLEANING     // 사육장 청소
+  RACK_SETUP   // 렉사 설치
+  FEEDING_PREP // 먹이 준비
+  HEALTH_CHECK // 건강 체크
+  OTHER        // 기타
 }
