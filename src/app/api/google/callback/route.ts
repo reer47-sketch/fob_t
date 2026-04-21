@@ -1,6 +1,6 @@
 import { google } from 'googleapis'
 import { prisma } from '@/lib/prisma'
-import { createServerClient } from '@/lib/supabase/server'
+import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 
 export async function GET(req: Request) {
@@ -18,7 +18,7 @@ export async function GET(req: Request) {
 
     const { tokens } = await oauth2Client.getToken(code)
 
-    const supabase = await createServerClient()
+    const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return redirect('/calendar?google=error')
 
