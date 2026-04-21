@@ -75,7 +75,7 @@ export function DayDetailPanel({ date, data, onClose, onAddTask, onRefresh }: Da
               <Item key={a.id}>
                 <EventChip type={a.acquisitionType === 'ADOPTION' ? 'adoption' : 'hatching'} />
                 <span className="text-sm">{a.name || a.uniqueId}</span>
-                <button onClick={() => router.push(`/animals/${a.id}`)} className="ml-auto text-muted-foreground hover:text-foreground">
+                <button onClick={() => router.push(`/animals?animal=${a.id}`)} className="ml-auto text-muted-foreground hover:text-foreground">
                   <ExternalLink className="size-3" />
                 </button>
               </Item>
