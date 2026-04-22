@@ -86,7 +86,6 @@ export async function getWeeklyReport(): Promise<{ success: boolean; data?: Week
         include: {
           female: { select: { name: true, uniqueId: true } },
           male: { select: { name: true } },
-          _count: { select: { eggs: false } },
         },
         orderBy: { expectedHatchDate: 'asc' },
       }),
