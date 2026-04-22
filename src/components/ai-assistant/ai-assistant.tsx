@@ -11,10 +11,14 @@ import { Input } from '@/components/ui/input'
 import { Sheet, SheetContent, SheetClose, SheetTitle } from '@/components/ui/sheet'
 import { cn } from '@/lib/utils'
 import { createFeeding } from '@/actions/feeding/create-feeding'
+import { deleteFeeding } from '@/actions/feeding/delete-feeding'
+import { getLatestFeeding } from '@/actions/feeding/get-latest-feeding'
 import { searchAnimals, type AnimalSearchResult } from '@/actions/animals/search-animals'
 import { getAllAnimalIds } from '@/actions/animals/get-all-animal-ids'
 import { createCalendarTask } from '@/actions/calendar/task-actions'
 import { FoodType, TaskCategory } from '@prisma/client'
+import { format } from 'date-fns'
+import { ko } from 'date-fns/locale'
 
 // ─── 타입 ────────────────────────────────────────────────────────────────────
 interface ChatMessage {
@@ -32,14 +36,33 @@ interface ApiMessage {
 }
 
 interface PendingAction {
-  type: 'CREATE_FEEDING'
-  payload: {
-    foodType: FoodType
-    feedingDate: string
-    quantity?: string | null
-    memo?: string | null
-    superfood?: boolean
+  type: 'CREATE_FEEDING' | 'DELETE_FEEDING' | 'UPDATE_FEEDING'
+  payload: Record<string, unknown>
+}
+
+interface FeedingConfirmState {
+  type: 'DELETE' | 'UPDATE'
+  feedingId: number
+  animal: AnimalSearchResult
+  existingFoodType: string
+  existingDate: Date
+  newPayload?: {
+    newFoodType: FoodType
+    newQuantity?: string | null
+    newMemo?: string | null
+    newSuperfood?: boolean
   }
+}
+
+const FOOD_LABEL: Record<string, string> = {
+  CRICKET: '귀뚜라미',
+  MEALWORM: '밀웜',
+  FEED: '사료',
+  VEGETABLE: '채소',
+  MOUSE: '마우스',
+  FROZEN_CHICK: '냉동병아리',
+  FRUIT_FLY: '초파리',
+  OTHER: '기타',
 }
 
 type VoiceState = 'idle' | 'recording' | 'processing'
@@ -65,6 +88,7 @@ export function AiAssistant({ open, onOpenChange }: AiAssistantProps) {
   const [selectedAnimal, setSelectedAnimal] = useState<AnimalSearchResult | null>(null)
   const [isSearching, setIsSearching] = useState(false)
   const [pendingAction, setPendingAction] = useState<PendingAction | null>(null)
+  const [feedingConfirm, setFeedingConfirm] = useState<FeedingConfirmState | null>(null)
 
   const msgCounterRef = useRef(0)
   const nextId = () => `ai-${++msgCounterRef.current}`
@@ -83,12 +107,14 @@ export function AiAssistant({ open, onOpenChange }: AiAssistantProps) {
   const apiMessagesRef = useRef<ApiMessage[]>([])
   const selectedAnimalRef = useRef<AnimalSearchResult | null>(null)
   const pendingActionRef = useRef<PendingAction | null>(null)
+  const feedingConfirmRef = useRef<FeedingConfirmState | null>(null)
 
   useEffect(() => { voiceStateRef.current = voiceState }, [voiceState])
   useEffect(() => { isMicMutedRef.current = isMicMuted }, [isMicMuted])
   useEffect(() => { apiMessagesRef.current = apiMessages }, [apiMessages])
   useEffect(() => { selectedAnimalRef.current = selectedAnimal }, [selectedAnimal])
   useEffect(() => { pendingActionRef.current = pendingAction }, [pendingAction])
+  useEffect(() => { feedingConfirmRef.current = feedingConfirm }, [feedingConfirm])
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -192,7 +218,7 @@ export function AiAssistant({ open, onOpenChange }: AiAssistantProps) {
       }
 
       case 'CREATE_FEEDING': {
-        const p = action.payload as PendingAction['payload']
+        const p = action.payload as { foodType: FoodType; feedingDate: string; quantity?: string | null; memo?: string | null; superfood?: boolean }
         if (selectedAnimalRef.current) {
           // 개체 있으면 바로 등록
           await executeFeedingCreate(selectedAnimalRef.current, p, message)
@@ -206,8 +232,57 @@ export function AiAssistant({ open, onOpenChange }: AiAssistantProps) {
         break
       }
 
+      case 'DELETE_FEEDING': {
+        const q = (action.payload.animalQuery as string) || ''
+        if (selectedAnimalRef.current) {
+          await executeDeleteSetup(selectedAnimalRef.current, message)
+        } else {
+          setPendingAction({ type: 'DELETE_FEEDING', payload: {} })
+          pendingActionRef.current = { type: 'DELETE_FEEDING', payload: {} }
+          setIsSearching(true)
+          addBotMessage({ text: message })
+          const res = await searchAnimals(q)
+          setIsSearching(false)
+          if (res.success && res.data && res.data.length > 0) {
+            setMessages(prev => {
+              const last = prev[prev.length - 1]
+              return [...prev.slice(0, -1), { ...last, animalResults: res.data }]
+            })
+          } else {
+            addBotMessage({ text: `"${q}"라는 개체를 찾지 못했어요. 다른 이름으로 검색해볼까요?` })
+            startRecording()
+          }
+        }
+        break
+      }
+
+      case 'UPDATE_FEEDING': {
+        const p = action.payload as { animalQuery?: string; newFoodType: FoodType; newQuantity?: string | null; newMemo?: string | null; newSuperfood?: boolean }
+        const q = p.animalQuery || ''
+        if (selectedAnimalRef.current) {
+          await executeUpdateSetup(selectedAnimalRef.current, p, message)
+        } else {
+          setPendingAction({ type: 'UPDATE_FEEDING', payload: p })
+          pendingActionRef.current = { type: 'UPDATE_FEEDING', payload: p }
+          setIsSearching(true)
+          addBotMessage({ text: message })
+          const res = await searchAnimals(q)
+          setIsSearching(false)
+          if (res.success && res.data && res.data.length > 0) {
+            setMessages(prev => {
+              const last = prev[prev.length - 1]
+              return [...prev.slice(0, -1), { ...last, animalResults: res.data }]
+            })
+          } else {
+            addBotMessage({ text: `"${q}"라는 개체를 찾지 못했어요. 다른 이름으로 검색해볼까요?` })
+            startRecording()
+          }
+        }
+        break
+      }
+
       case 'CREATE_FEEDING_ALL': {
-        const p = action.payload as PendingAction['payload'] & { gender?: 'MALE' | 'FEMALE' | 'UNKNOWN' }
+        const p = action.payload as { foodType: FoodType; feedingDate: string; quantity?: string | null; memo?: string | null; superfood?: boolean; gender?: 'MALE' | 'FEMALE' | 'UNKNOWN' }
         const genderLabel = p.gender === 'MALE' ? '수컷' : p.gender === 'FEMALE' ? '암컷' : p.gender === 'UNKNOWN' ? '미구분' : '전체'
         setVoiceState('processing')
         addBotMessage({ text: message })
@@ -237,10 +312,7 @@ export function AiAssistant({ open, onOpenChange }: AiAssistantProps) {
       }
 
       case 'CREATE_FEEDING_EXCLUDE': {
-        const p = action.payload as PendingAction['payload'] & {
-          gender?: 'MALE' | 'FEMALE' | 'UNKNOWN'
-          excludeNames: string[]
-        }
+        const p = action.payload as { foodType: FoodType; feedingDate: string; quantity?: string | null; memo?: string | null; superfood?: boolean; gender?: 'MALE' | 'FEMALE' | 'UNKNOWN'; excludeNames: string[] }
         const genderLabel = p.gender === 'MALE' ? '수컷' : p.gender === 'FEMALE' ? '암컷' : p.gender === 'UNKNOWN' ? '미구분' : '전체'
         setVoiceState('processing')
         addBotMessage({ text: message })
@@ -341,11 +413,129 @@ export function AiAssistant({ open, onOpenChange }: AiAssistantProps) {
     }
   }
 
-  const executeFeedingCreate = async (
+  const executeDeleteSetup = async (animal: AnimalSearchResult, botMsg: string) => {
+    setVoiceState('processing')
+    if (botMsg) addBotMessage({ text: botMsg })
+    const res = await getLatestFeeding(animal.id)
+    setVoiceState('idle')
+
+    if (!res.success || !res.data) {
+      addBotMessage({ text: `${animal.name || animal.uniqueId}의 피딩 기록이 없어요.` })
+      startRecording()
+      return
+    }
+
+    const feeding = res.data
+    const dateStr = format(new Date(feeding.feedingDate), 'M/d (EEE)', { locale: ko })
+    const foodLabel = FOOD_LABEL[feeding.foodType] || feeding.foodType
+
+    const confirm: FeedingConfirmState = {
+      type: 'DELETE',
+      feedingId: feeding.id,
+      animal,
+      existingFoodType: feeding.foodType,
+      existingDate: new Date(feeding.feedingDate),
+    }
+    setFeedingConfirm(confirm)
+    feedingConfirmRef.current = confirm
+    addBotMessage({ text: `${animal.name || animal.uniqueId}의 가장 최근 피딩 기록이에요:\n${dateStr} · ${foodLabel}\n\n삭제할까요?` })
+  }
+
+  const executeUpdateSetup = async (
     animal: AnimalSearchResult,
-    p: PendingAction['payload'],
+    p: { newFoodType: FoodType; newQuantity?: string | null; newMemo?: string | null; newSuperfood?: boolean },
     botMsg: string
   ) => {
+    setVoiceState('processing')
+    if (botMsg) addBotMessage({ text: botMsg })
+    const res = await getLatestFeeding(animal.id)
+    setVoiceState('idle')
+
+    if (!res.success || !res.data) {
+      addBotMessage({ text: `${animal.name || animal.uniqueId}의 피딩 기록이 없어요.` })
+      startRecording()
+      return
+    }
+
+    const feeding = res.data
+    const dateStr = format(new Date(feeding.feedingDate), 'M/d (EEE)', { locale: ko })
+    const oldLabel = FOOD_LABEL[feeding.foodType] || feeding.foodType
+    const newLabel = FOOD_LABEL[p.newFoodType] || p.newFoodType
+
+    const confirm: FeedingConfirmState = {
+      type: 'UPDATE',
+      feedingId: feeding.id,
+      animal,
+      existingFoodType: feeding.foodType,
+      existingDate: new Date(feeding.feedingDate),
+      newPayload: {
+        newFoodType: p.newFoodType,
+        newQuantity: p.newQuantity,
+        newMemo: p.newMemo,
+        newSuperfood: p.newSuperfood,
+      },
+    }
+    setFeedingConfirm(confirm)
+    feedingConfirmRef.current = confirm
+    addBotMessage({ text: `${animal.name || animal.uniqueId}의 ${dateStr} ${oldLabel} 기록을 ${newLabel}으로 수정할까요?` })
+  }
+
+  const handleConfirmAction = async () => {
+    const confirm = feedingConfirmRef.current
+    if (!confirm) return
+    setFeedingConfirm(null)
+    feedingConfirmRef.current = null
+    setVoiceState('processing')
+
+    if (confirm.type === 'DELETE') {
+      const res = await deleteFeeding(confirm.feedingId)
+      setVoiceState('idle')
+      if (res.success) {
+        addBotMessage({ text: `${confirm.animal.name || confirm.animal.uniqueId}의 피딩 기록을 삭제했어요.` })
+      } else {
+        addBotMessage({ text: `삭제 중 오류가 발생했어요. (${res.error})` })
+      }
+    } else if (confirm.type === 'UPDATE' && confirm.newPayload) {
+      const delRes = await deleteFeeding(confirm.feedingId)
+      if (!delRes.success) {
+        setVoiceState('idle')
+        addBotMessage({ text: `수정 중 오류가 발생했어요. (${delRes.error})` })
+        startRecording()
+        return
+      }
+      const p = confirm.newPayload
+      const result = await createFeeding({
+        animalIds: [confirm.animal.id],
+        foodType: p.newFoodType,
+        feedingDate: confirm.existingDate,
+        quantity: p.newQuantity ?? null,
+        memo: p.newMemo ?? null,
+        superfood: p.newSuperfood ?? false,
+      })
+      setVoiceState('idle')
+      if (result.success) {
+        const newLabel = FOOD_LABEL[p.newFoodType] || p.newFoodType
+        addBotMessage({ text: `${confirm.animal.name || confirm.animal.uniqueId}의 피딩 기록을 ${newLabel}으로 수정했어요.` })
+      } else {
+        addBotMessage({ text: `수정 중 오류가 발생했어요. (${result.error})` })
+      }
+    }
+    startRecording()
+  }
+
+  const handleCancelConfirm = () => {
+    setFeedingConfirm(null)
+    feedingConfirmRef.current = null
+    addBotMessage({ text: '취소됐어요.' })
+    startRecording()
+  }
+
+  const executeFeedingCreate = async (
+    animal: AnimalSearchResult,
+    p: { foodType: FoodType; feedingDate: string; quantity?: string | null; memo?: string | null; superfood?: boolean },
+    botMsg: string
+  ) => {
+    if (botMsg) addBotMessage({ text: botMsg })
     setVoiceState('processing')
     const result = await createFeeding({
       animalIds: [animal.id],
@@ -379,8 +569,15 @@ export function AiAssistant({ open, onOpenChange }: AiAssistantProps) {
     addUserMessage(confirmMsg)
 
     const pending = pendingActionRef.current
+    setPendingAction(null)
+    pendingActionRef.current = null
+
     if (pending?.type === 'CREATE_FEEDING') {
-      await executeFeedingCreate(animal, pending.payload, '')
+      await executeFeedingCreate(animal, pending.payload as { foodType: FoodType; feedingDate: string; quantity?: string | null; memo?: string | null; superfood?: boolean }, '')
+    } else if (pending?.type === 'DELETE_FEEDING') {
+      await executeDeleteSetup(animal, '')
+    } else if (pending?.type === 'UPDATE_FEEDING') {
+      await executeUpdateSetup(animal, pending.payload as { newFoodType: FoodType; newQuantity?: string | null; newMemo?: string | null; newSuperfood?: boolean }, '')
     } else {
       // AI에게 선택 알림
       setVoiceState('processing')
@@ -634,6 +831,22 @@ export function AiAssistant({ open, onOpenChange }: AiAssistantProps) {
               )}
             </div>
           ))}
+
+          {/* 피딩 삭제/수정 확인 버튼 */}
+          {feedingConfirm && (
+            <div className="flex items-center gap-2 pl-1">
+              <Button
+                size="sm"
+                variant={feedingConfirm.type === 'DELETE' ? 'destructive' : 'default'}
+                onClick={handleConfirmAction}
+              >
+                {feedingConfirm.type === 'DELETE' ? '삭제 확인' : '수정 확인'}
+              </Button>
+              <Button size="sm" variant="outline" onClick={handleCancelConfirm}>
+                취소
+              </Button>
+            </div>
+          )}
 
           {/* 로딩 */}
           {(voiceState === 'processing' || isSearching) && (

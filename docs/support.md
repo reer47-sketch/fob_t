@@ -93,6 +93,12 @@
 6. **태스크 등록**: 브리딩 캘린더에 할 일을 날짜와 함께 등록
    - 예) "내일 사육장 청소 일정 잡아줘" → 내일 날짜로 CLEANING 태스크 등록
    - 예) "다음 주 월요일에 먹이 준비 해야 해" → 해당 날짜로 FEEDING_PREP 태스크 등록
+7. **피딩 삭제**: 특정 개체의 가장 최근 피딩 기록 삭제 (확인 후 삭제)
+   - 예) "레오 피딩 취소해줘" → 레오의 최근 피딩 확인 후 삭제
+   - 예) "방금 피딩 기록 지워줘" → 현재 선택된 개체의 최근 피딩 삭제
+8. **피딩 수정**: 특정 개체의 가장 최근 피딩 기록을 삭제 후 새로 등록 (확인 후 수정)
+   - 예) "레오 아까 귀뚜라미로 했는데 밀웜이었어" → 최근 피딩 삭제 후 밀웜으로 재등록
+   - 예) "방금 기록 먹이 종류 바꿔줘, 마우스야" → 최근 피딩을 마우스로 수정
 
 ---
 
@@ -126,7 +132,7 @@
   "message": "...",
   "intent": "...",
   "action": {
-    "type": "NAVIGATE | SEARCH_ANIMAL | CREATE_FEEDING | CREATE_FEEDING_ALL | CREATE_FEEDING_EXCLUDE | OPEN_REGISTER | CREATE_TASK",
+    "type": "NAVIGATE | SEARCH_ANIMAL | CREATE_FEEDING | CREATE_FEEDING_ALL | CREATE_FEEDING_EXCLUDE | OPEN_REGISTER | CREATE_TASK | DELETE_FEEDING | UPDATE_FEEDING",
     "payload": {}
   }
 }
@@ -203,6 +209,28 @@
 - 카테고리 변환: 사육장 청소→CLEANING, 렉사 설치→RACK_SETUP, 먹이 준비→FEEDING_PREP, 건강 체크→HEALTH_CHECK, 기타→OTHER
 - 날짜 표현 변환: "내일"→오늘+1일, "다음 주 월요일"→해당 날짜, "모레"→오늘+2일 등
 - 날짜를 명시하지 않으면 오늘 날짜 사용
+
+**DELETE_FEEDING**
+```json
+{ "animalQuery": "레오" }
+```
+- animalQuery: 검색할 개체명. 이미 선택된 개체가 있으면 null 또는 생략 가능
+- 가장 최근 피딩 기록을 대상으로 함. 사용자 확인 후 삭제 처리
+
+**UPDATE_FEEDING**
+```json
+{
+  "animalQuery": "레오",
+  "newFoodType": "MEALWORM",
+  "newQuantity": null,
+  "newMemo": null,
+  "newSuperfood": false
+}
+```
+- animalQuery: 검색할 개체명. 이미 선택된 개체가 있으면 null 또는 생략 가능
+- newFoodType: 변경할 먹이 종류 (필수). 한국어로 받으면 영문으로 변환
+- 가장 최근 피딩 기록을 삭제 후 새 정보로 재등록. 사용자 확인 후 수정 처리
+- newQuantity, newMemo, newSuperfood 미입력 시 null/false로 처리
 
 ---
 
