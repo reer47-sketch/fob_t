@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -32,14 +32,22 @@ export function TaskDialog({ open, onOpenChange, defaultDate, onCreated }: TaskD
   const [memo, setMemo] = useState('')
   const [loading, setLoading] = useState(false)
 
+  useEffect(() => {
+    if (open) {
+      setTitle('')
+      setMemo('')
+      setCategory('OTHER')
+      setDate(defaultDate ?? new Date().toISOString().split('T')[0])
+    }
+  }, [open, defaultDate])
+
   const handleSubmit = async () => {
     if (!title.trim()) return toast.error('제목을 입력해주세요.')
     setLoading(true)
-    const res = await createCalendarTask({ title: title.trim(), date: new Date(date), category, memo: memo || undefined })
+    const res = await createCalendarTask({ title: title.trim(), date: new Date(date + 'T00:00:00'), category, memo: memo || undefined })
     setLoading(false)
     if (res.success) {
       toast.success('태스크가 추가됐어요.')
-      setTitle(''); setMemo('')
       onOpenChange(false)
       onCreated?.()
     } else {
