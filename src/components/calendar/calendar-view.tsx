@@ -14,6 +14,7 @@ import { cn } from '@/lib/utils'
 import { EventChip, EventType } from './calendar-event-chip'
 import { DayDetailPanel } from './day-detail-panel'
 import { TaskDialog } from './task-dialog'
+import { WeeklyReportSheet } from './weekly-report-sheet'
 import { CalendarDataResult } from '@/actions/calendar/get-calendar-data'
 import { syncToGoogleCalendar, disconnectGoogleCalendar } from '@/actions/calendar/google-calendar'
 import { toast } from 'sonner'
@@ -37,6 +38,7 @@ export function CalendarView({ initialData, googleConnected, onRangeChange }: Ca
   const [taskDefaultDate, setTaskDefaultDate] = useState<string | undefined>()
   const [isConnected, setIsConnected] = useState(googleConnected)
   const [isPending, startTransition] = useTransition()
+  const [reportOpen, setReportOpen] = useState(false)
 
   const getRange = useCallback((base: Date, v: ViewMode) => {
     if (v === 'month') return { from: startOfMonth(base), to: endOfMonth(base) }
@@ -166,7 +168,7 @@ export function CalendarView({ initialData, googleConnected, onRangeChange }: Ca
             <Button variant="ghost" size="sm" onClick={() => { setCurrent(new Date()); refresh() }} className="text-xs text-muted-foreground">오늘</Button>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5">
             <Tabs value={view} onValueChange={handleViewChange}>
               <TabsList>
                 <TabsTrigger value="month"><CalendarDays className="size-3.5 mr-1" />월</TabsTrigger>
@@ -176,21 +178,21 @@ export function CalendarView({ initialData, googleConnected, onRangeChange }: Ca
             <Button variant="ghost" size="icon" onClick={refresh} disabled={isPending} title="새로고침">
               <RefreshCw className={cn('size-4', isPending && 'animate-spin')} />
             </Button>
-            <Button variant="ghost" size="sm" onClick={() => window.open('/weekly-report', '_blank')} className="text-xs gap-1.5" title="주간 리포트">
-              <FileText className="size-3.5" />주간 리포트
+            <Button variant="ghost" size="icon" onClick={() => setReportOpen(true)} title="주간 리포트">
+              <FileText className="size-4" />
             </Button>
             {isConnected ? (
               <>
-                <Button size="sm" variant="outline" onClick={handleGoogleSync} className="text-xs gap-1.5">
-                  <Link2 className="size-3.5 text-blue-500" />구글 동기화
+                <Button size="icon" variant="outline" onClick={handleGoogleSync} title="구글 캘린더 동기화">
+                  <Link2 className="size-4 text-blue-500" />
                 </Button>
-                <Button size="sm" variant="ghost" onClick={handleDisconnect} className="text-xs gap-1.5 text-muted-foreground">
-                  <Link2Off className="size-3.5" />연동 해제
+                <Button size="icon" variant="ghost" onClick={handleDisconnect} title="구글 캘린더 연동 해제" className="text-muted-foreground">
+                  <Link2Off className="size-4" />
                 </Button>
               </>
             ) : (
-              <Button size="sm" variant="outline" onClick={() => window.location.href = '/api/google/auth'} className="text-xs gap-1.5">
-                <Link2 className="size-3.5" />구글 캘린더 연동
+              <Button size="icon" variant="outline" onClick={() => window.location.href = '/api/google/auth'} title="구글 캘린더 연동">
+                <Link2 className="size-4" />
               </Button>
             )}
           </div>
@@ -349,6 +351,7 @@ export function CalendarView({ initialData, googleConnected, onRangeChange }: Ca
         defaultDate={taskDefaultDate}
         onCreated={refresh}
       />
+      <WeeklyReportSheet open={reportOpen} onOpenChange={setReportOpen} />
     </div>
   )
 }
