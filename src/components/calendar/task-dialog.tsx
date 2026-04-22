@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -31,15 +31,6 @@ export function TaskDialog({ open, onOpenChange, defaultDate, onCreated }: TaskD
   const [category, setCategory] = useState<TaskCategory>('OTHER')
   const [memo, setMemo] = useState('')
   const [loading, setLoading] = useState(false)
-
-  useEffect(() => {
-    if (open) {
-      setTitle('')
-      setMemo('')
-      setCategory('OTHER')
-      setDate(defaultDate ?? new Date().toISOString().split('T')[0])
-    }
-  }, [open, defaultDate])
 
   const handleSubmit = async () => {
     if (!title.trim()) return toast.error('제목을 입력해주세요.')

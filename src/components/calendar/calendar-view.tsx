@@ -340,6 +340,7 @@ export function CalendarView({ initialData, googleConnected, onRangeChange }: Ca
       )}
 
       <TaskDialog
+        key={taskDialogOpen ? (taskDefaultDate ?? 'none') : 'closed'}
         open={taskDialogOpen}
         onOpenChange={setTaskDialogOpen}
         defaultDate={taskDefaultDate}
