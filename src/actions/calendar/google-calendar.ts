@@ -40,13 +40,14 @@ async function getAuthedClient(userId: string) {
   return oauth2Client
 }
 
-// CUID → Google Calendar 허용 ID (0-9, a-v만 허용)
+// prefix와 id 모두 hex 인코딩 → 0-9a-f만 사용 (Google Calendar 허용 범위)
 function toGCalEventId(prefix: string, id: string): string {
-  const hex = Buffer.from(id).toString('hex') // 0-9a-f만 사용
-  return (prefix + hex).slice(0, 1024)
+  const prefixHex = Buffer.from(prefix).toString('hex')
+  const idHex = Buffer.from(id).toString('hex')
+  return (prefixHex + idHex).slice(0, 1024)
 }
 
-// 이벤트 upsert: 있으면 업데이트, 없으면 생성
+// 이벤트 upsert: 404면 생성, 그 외 에러는 그대로 전파
 async function upsertEvent(
   calendar: ReturnType<typeof google.calendar>,
   eventId: string,
@@ -54,8 +55,13 @@ async function upsertEvent(
 ) {
   try {
     await calendar.events.patch({ calendarId: 'primary', eventId, requestBody: eventBody })
-  } catch {
-    await calendar.events.insert({ calendarId: 'primary', requestBody: { ...eventBody, id: eventId } })
+  } catch (e: unknown) {
+    const status = (e as { code?: number })?.code
+    if (status === 404 || status === 410) {
+      await calendar.events.insert({ calendarId: 'primary', requestBody: { ...eventBody, id: eventId } })
+    } else {
+      throw e
+    }
   }
 }
 
