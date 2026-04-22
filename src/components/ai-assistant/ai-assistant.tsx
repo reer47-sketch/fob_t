@@ -13,7 +13,8 @@ import { cn } from '@/lib/utils'
 import { createFeeding } from '@/actions/feeding/create-feeding'
 import { searchAnimals, type AnimalSearchResult } from '@/actions/animals/search-animals'
 import { getAllAnimalIds } from '@/actions/animals/get-all-animal-ids'
-import { FoodType } from '@prisma/client'
+import { createCalendarTask } from '@/actions/calendar/task-actions'
+import { FoodType, TaskCategory } from '@prisma/client'
 
 // ─── 타입 ────────────────────────────────────────────────────────────────────
 interface ChatMessage {
@@ -288,6 +289,26 @@ export function AiAssistant({ open, onOpenChange }: AiAssistantProps) {
           addBotMessage({ text: `${genderLabel} ${targetIds.length}마리 피딩 기록이 저장됐어요!${excludeNote}${notFoundNote}` })
         } else {
           addBotMessage({ text: `피딩 기록 중 오류가 발생했어요. (${result.error ?? '알 수 없는 오류'})` })
+        }
+        startRecording()
+        break
+      }
+
+      case 'CREATE_TASK': {
+        const p = action.payload as { title: string; date: string; category: string; memo?: string | null }
+        setVoiceState('processing')
+        addBotMessage({ text: message })
+        const res = await createCalendarTask({
+          title: p.title,
+          date: new Date(p.date + 'T00:00:00'),
+          category: p.category as TaskCategory,
+          memo: p.memo ?? undefined,
+        })
+        setVoiceState('idle')
+        if (res.success) {
+          addBotMessage({ text: `"${p.title}" 태스크가 ${p.date} 날짜로 등록됐어요.` })
+        } else {
+          addBotMessage({ text: `태스크 등록 중 오류가 발생했어요. (${res.error ?? '알 수 없는 오류'})` })
         }
         startRecording()
         break
@@ -674,6 +695,7 @@ function navLabel(url: string): string {
     '/animals/voice-register': 'AI 개체 등록 열기',
     '/feedings': '피딩 기록 보기',
     '/feeding-calendar': '피딩 캘린더 보기',
+    '/calendar': '브리딩 캘린더 보기',
     '/pairings': '메이팅 관리 보기',
     '/incubation': '알 관리 보기',
     '/customers': '고객 관리 보기',

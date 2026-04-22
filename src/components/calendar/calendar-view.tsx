@@ -7,7 +7,7 @@ import {
   isSameMonth, isToday, isSameDay, parseISO,
 } from 'date-fns'
 import { ko } from 'date-fns/locale'
-import { ChevronLeft, ChevronRight, CalendarDays, CalendarRange, RefreshCw, AlertTriangle, Link2, Link2Off } from 'lucide-react'
+import { ChevronLeft, ChevronRight, CalendarDays, CalendarRange, RefreshCw, AlertTriangle, Link2, Link2Off, FileText } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { cn } from '@/lib/utils'
@@ -175,6 +175,9 @@ export function CalendarView({ initialData, googleConnected, onRangeChange }: Ca
             </Tabs>
             <Button variant="ghost" size="icon" onClick={refresh} disabled={isPending} title="새로고침">
               <RefreshCw className={cn('size-4', isPending && 'animate-spin')} />
+            </Button>
+            <Button variant="ghost" size="sm" onClick={() => window.open('/weekly-report', '_blank')} className="text-xs gap-1.5" title="주간 리포트">
+              <FileText className="size-3.5" />주간 리포트
             </Button>
             {isConnected ? (
               <>

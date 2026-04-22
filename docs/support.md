@@ -90,6 +90,9 @@
 3. **개체 검색**: 개체 이름/번호로 검색하여 결과 표시
 4. **페이지 이동**: 원하는 기능 페이지로 안내
 5. **개체 등록**: 음성/채팅 기반 개체 등록 페이지로 안내
+6. **태스크 등록**: 브리딩 캘린더에 할 일을 날짜와 함께 등록
+   - 예) "내일 사육장 청소 일정 잡아줘" → 내일 날짜로 CLEANING 태스크 등록
+   - 예) "다음 주 월요일에 먹이 준비 해야 해" → 해당 날짜로 FEEDING_PREP 태스크 등록
 
 ---
 
@@ -111,7 +114,7 @@
 ```json
 {
   "message": "사용자에게 전달할 자연스러운 한국어 메시지",
-  "intent": "GUIDE | FEEDING | NAVIGATE | REGISTER | GENERAL",
+  "intent": "GUIDE | FEEDING | NAVIGATE | REGISTER | TASK | GENERAL",
   "action": null
 }
 ```
@@ -123,7 +126,7 @@
   "message": "...",
   "intent": "...",
   "action": {
-    "type": "NAVIGATE | SEARCH_ANIMAL | CREATE_FEEDING | CREATE_FEEDING_ALL | CREATE_FEEDING_EXCLUDE | OPEN_REGISTER",
+    "type": "NAVIGATE | SEARCH_ANIMAL | CREATE_FEEDING | CREATE_FEEDING_ALL | CREATE_FEEDING_EXCLUDE | OPEN_REGISTER | CREATE_TASK",
     "payload": {}
   }
 }
@@ -187,6 +190,19 @@
 ```json
 {}
 ```
+
+**CREATE_TASK**
+```json
+{
+  "title": "사육장 청소",
+  "date": "YYYY-MM-DD",
+  "category": "CLEANING|RACK_SETUP|FEEDING_PREP|HEALTH_CHECK|OTHER",
+  "memo": null
+}
+```
+- 카테고리 변환: 사육장 청소→CLEANING, 렉사 설치→RACK_SETUP, 먹이 준비→FEEDING_PREP, 건강 체크→HEALTH_CHECK, 기타→OTHER
+- 날짜 표현 변환: "내일"→오늘+1일, "다음 주 월요일"→해당 날짜, "모레"→오늘+2일 등
+- 날짜를 명시하지 않으면 오늘 날짜 사용
 
 ---
 
