@@ -19,28 +19,43 @@ function fmtDate(dateStr: string) {
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div className="mb-5">
-      <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-widest mb-2 border-b pb-1">{title}</p>
-      <div className="space-y-1">{children}</div>
+    <div className="mb-6">
+      <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-widest mb-2 pb-1.5 border-b border-border">
+        {title}
+      </p>
+      <div className="space-y-2">{children}</div>
     </div>
   )
 }
 
-function Row({ label, sub, badge, right }: { label: string; sub?: string | null; badge?: string; right?: string }) {
+function Row({
+  label, sub, badge, right,
+}: {
+  label: string
+  sub?: string | null
+  badge?: string
+  right?: string
+}) {
   return (
-    <div className="flex items-center justify-between py-1 text-sm">
-      <div className="flex items-center gap-2 min-w-0">
-        <span className="truncate">{label}</span>
-        {sub && <span className="text-xs text-muted-foreground shrink-0">{sub}</span>}
-        {badge && <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-muted text-muted-foreground shrink-0">{badge}</span>}
+    <div className="flex items-start justify-between gap-3">
+      <div className="flex flex-col gap-0.5 min-w-0">
+        <span className="text-sm font-semibold leading-snug truncate">{label}</span>
+        {sub && <span className="text-xs text-muted-foreground">{sub}</span>}
       </div>
-      {right && <span className="text-xs text-muted-foreground shrink-0 ml-2">{right}</span>}
+      <div className="flex items-center gap-2 shrink-0">
+        {badge && (
+          <span className="text-[11px] px-2 py-0.5 rounded-full bg-muted text-muted-foreground font-medium">
+            {badge}
+          </span>
+        )}
+        {right && <span className="text-sm text-foreground">{right}</span>}
+      </div>
     </div>
   )
 }
 
 function Empty() {
-  return <p className="text-xs text-muted-foreground italic">해당 사항 없음</p>
+  return <p className="text-sm text-muted-foreground">해당 사항 없음</p>
 }
 
 export function WeeklyReportSheet({ open, onOpenChange }: WeeklyReportSheetProps) {
@@ -58,13 +73,14 @@ export function WeeklyReportSheet({ open, onOpenChange }: WeeklyReportSheetProps
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="right" className="w-full sm:max-w-md overflow-y-auto">
-        <SheetHeader className="mb-4">
-          <div className="flex items-center justify-between">
-            <SheetTitle>주간 브리딩 리포트</SheetTitle>
-            <Button size="sm" variant="outline" className="text-xs gap-1.5 mr-6"
+      <SheetContent side="right" className="w-full sm:max-w-sm flex flex-col p-0">
+        {/* 헤더 */}
+        <div className="px-5 py-4 border-b border-border shrink-0">
+          <div className="flex items-center justify-between mb-1">
+            <SheetTitle className="text-base">주간 브리딩 리포트</SheetTitle>
+            <Button size="sm" variant="outline" className="text-xs gap-1.5 h-7"
               onClick={() => window.open('/weekly-report', '_blank')}>
-              <Printer className="size-3.5" />PDF 저장
+              <Printer className="size-3" />PDF
             </Button>
           </div>
           {data && (
@@ -72,68 +88,82 @@ export function WeeklyReportSheet({ open, onOpenChange }: WeeklyReportSheetProps
               {fmtDate(data.weekStart)} ~ {fmtDate(data.weekEnd)}
             </p>
           )}
-        </SheetHeader>
+        </div>
 
-        {loading && (
-          <div className="flex items-center justify-center py-16">
-            <Loader2 className="size-5 animate-spin text-muted-foreground" />
-          </div>
-        )}
+        {/* 본문 */}
+        <div className="flex-1 overflow-y-auto px-5 py-5">
+          {loading && (
+            <div className="flex items-center justify-center py-16">
+              <Loader2 className="size-5 animate-spin text-muted-foreground" />
+            </div>
+          )}
 
-        {!loading && !data && (
-          <p className="text-sm text-muted-foreground text-center py-16">리포트를 불러오지 못했습니다.</p>
-        )}
+          {!loading && !data && (
+            <p className="text-sm text-muted-foreground text-center py-16">리포트를 불러오지 못했습니다.</p>
+          )}
 
-        {!loading && data && (
-          <div className="pr-2">
-            <Section title="이번 주 부화 예정">
-              {data.expectedHatchings.length === 0 ? <Empty /> : data.expectedHatchings.map(e => (
-                <Row key={e.eggId}
-                  label={`${e.femaleName || e.femaleUniqueId}${e.maleName ? ' × ' + e.maleName : ''}`}
-                  right={fmtDate(e.expectedDate)} />
-              ))}
-            </Section>
-
-            <Section title="산란 임박">
-              {data.layingSoon.length === 0 ? <Empty /> : data.layingSoon.map(p => (
-                <Row key={p.pairingId}
-                  label={p.femaleName || p.femaleUniqueId}
-                  sub={p.maleName ? `× ${p.maleName}` : undefined}
-                  badge="산란 임박"
-                  right={fmtDate(p.matingDate)} />
-              ))}
-            </Section>
-
-            <Section title="메이팅 진행 중">
-              {data.activeMating.length === 0 ? <Empty /> : data.activeMating.map(p => (
-                <Row key={p.pairingId}
-                  label={p.femaleName || p.femaleUniqueId}
-                  sub={p.maleName ? `× ${p.maleName}` : undefined}
-                  badge={p.status}
-                  right={fmtDate(p.matingDate)} />
-              ))}
-            </Section>
-
-            <Section title="이번 주 할 일">
-              {data.tasks.length === 0 ? <Empty /> : data.tasks.map(t => (
-                <Row key={t.id}
-                  label={t.title}
-                  badge={t.category}
-                  right={fmtDate(t.date)} />
-              ))}
-            </Section>
-
-            {data.unfedAnimals.length > 0 && (
-              <Section title="미피딩 주의 (7일 이상)">
-                {data.unfedAnimals.map(a => (
-                  <Row key={a.id}
-                    label={a.name || a.uniqueId}
-                    right={a.daysSinceFeeding === 999 ? '기록 없음' : `${a.daysSinceFeeding}일 경과`} />
+          {!loading && data && (
+            <>
+              <Section title="이번 주 부화 예정">
+                {data.expectedHatchings.length === 0 ? <Empty /> : data.expectedHatchings.map(e => (
+                  <Row
+                    key={e.eggId}
+                    label={`${e.femaleName || e.femaleUniqueId}${e.maleName ? ' × ' + e.maleName : ''}`}
+                    right={fmtDate(e.expectedDate)}
+                  />
                 ))}
               </Section>
-            )}
-          </div>
-        )}
+
+              <Section title="산란 임박">
+                {data.layingSoon.length === 0 ? <Empty /> : data.layingSoon.map(p => (
+                  <Row
+                    key={p.pairingId}
+                    label={p.femaleName || p.femaleUniqueId}
+                    sub={p.maleName ? `수컷: ${p.maleName}` : undefined}
+                    badge="산란 임박"
+                    right={fmtDate(p.matingDate)}
+                  />
+                ))}
+              </Section>
+
+              <Section title="메이팅 진행 중">
+                {data.activeMating.length === 0 ? <Empty /> : data.activeMating.map(p => (
+                  <Row
+                    key={p.pairingId}
+                    label={p.femaleName || p.femaleUniqueId}
+                    sub={p.maleName ? `수컷: ${p.maleName}` : undefined}
+                    badge={p.status}
+                    right={fmtDate(p.matingDate)}
+                  />
+                ))}
+              </Section>
+
+              <Section title="이번 주 할 일">
+                {data.tasks.length === 0 ? <Empty /> : data.tasks.map(t => (
+                  <Row
+                    key={t.id}
+                    label={t.title}
+                    sub={t.memo ?? undefined}
+                    badge={t.category}
+                    right={fmtDate(t.date)}
+                  />
+                ))}
+              </Section>
+
+              {data.unfedAnimals.length > 0 && (
+                <Section title="미피딩 주의 (7일 이상)">
+                  {data.unfedAnimals.map(a => (
+                    <Row
+                      key={a.id}
+                      label={a.name || a.uniqueId}
+                      right={a.daysSinceFeeding === 999 ? '기록 없음' : `${a.daysSinceFeeding}일 경과`}
+                    />
+                  ))}
+                </Section>
+              )}
+            </>
+          )}
+        </div>
       </SheetContent>
     </Sheet>
   )
