@@ -328,6 +328,14 @@ export default function HelpPage() {
                 <Step n={3}>완료 시 체크박스를 클릭하면 완료 처리되고, 휴지통 아이콘으로 삭제할 수 있습니다.</Step>
               </AccordionContent>
             </AccordionItem>
+            <AccordionItem value="calendar-weekly-report">
+              <AccordionTrigger className="text-sm">주간 브리딩 리포트</AccordionTrigger>
+              <AccordionContent className="space-y-2">
+                <Step n={1}>캘린더 상단의 <strong>주간 리포트</strong> 버튼(메모 아이콘)을 클릭합니다.</Step>
+                <Step n={2}>이번 주 부화 예정, 산란 임박, 메이팅 진행 중, 할 일, 미피딩 개체를 한눈에 확인합니다.</Step>
+                <Step n={3}><strong>PDF</strong> 버튼을 클릭하면 새 창에서 인쇄/PDF 저장이 가능합니다.</Step>
+              </AccordionContent>
+            </AccordionItem>
             <AccordionItem value="calendar-google">
               <AccordionTrigger className="text-sm">Google Calendar 연동</AccordionTrigger>
               <AccordionContent className="space-y-2">
@@ -479,6 +487,9 @@ export default function HelpPage() {
               { title: '전체/성별 일괄 피딩', desc: '"전체 사료 줬어", "수컷들 밀웜 줬어" — 일괄 기록' },
               { title: '일부 제외 피딩', desc: '"전체 줬는데 바이는 빼줘" — 특정 개체 제외 후 저장' },
               { title: '슈퍼푸드 포함', desc: '"귀뚜라미 슈퍼푸드 포함해서 줬어" — 슈퍼푸드 자동 체크' },
+              { title: '피딩 삭제', desc: '"레오 피딩 취소해줘" — 최근 피딩 확인 후 삭제' },
+              { title: '피딩 수정', desc: '"레오 아까 귀뚜라미였는데 밀웜이야" — 최근 피딩 수정' },
+              { title: '태스크 등록', desc: '"내일 사육장 청소 일정 잡아줘" — 캘린더에 할 일 등록' },
               { title: '개체 검색', desc: '"레오 찾아줘" — 이름/번호로 검색 결과 표시' },
               { title: '기능 안내', desc: '"메이팅 어떻게 해?" — 기능 사용법 질문 답변' },
             ].map(c => (
