@@ -1,7 +1,7 @@
 import {
   PawPrint, UtensilsCrossed, Heart, Egg, Users, BarChart3,
   QrCode, FileText, Bot, ChevronRight, AlertCircle, Lightbulb,
-  RotateCcw, CheckCircle2, CalendarRange,
+  RotateCcw, CheckCircle2, CalendarRange, BookOpen,
 } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -21,6 +21,7 @@ const SECTIONS = [
   { id: 'qr',         icon: QrCode,            label: 'QR 스캔' },
   { id: 'transfer',   icon: FileText,          label: '양수양도 신고서' },
   { id: 'ai',         icon: Bot,               label: 'AI 음성 도우미' },
+  { id: 'caresheet',  icon: BookOpen,          label: '사육 케어시트' },
 ]
 
 function SectionAnchor({ id }: { id: string }) {
@@ -492,6 +493,7 @@ export default function HelpPage() {
               { title: '태스크 등록', desc: '"내일 사육장 청소 일정 잡아줘" — 캘린더에 할 일 등록' },
               { title: '개체 검색', desc: '"레오 찾아줘" — 이름/번호로 검색 결과 표시' },
               { title: '기능 안내', desc: '"메이팅 어떻게 해?" — 기능 사용법 질문 답변' },
+              { title: '사육 케어 질문', desc: '"크레 온도 어떻게 해?", "탈피 실패하면?" — 케어시트 기반 답변' },
             ].map(c => (
               <Card key={c.title} className="border-border">
                 <CardHeader className="pb-1 pt-3 px-4">
@@ -507,6 +509,70 @@ export default function HelpPage() {
           <TipBox>
             AI가 답변을 완료하면 자동으로 음성 인식 대기 상태로 전환됩니다. 연속으로 말해도 자연스럽게 대화가 이어집니다.
           </TipBox>
+        </section>
+
+        <Separator />
+
+        {/* ── 사육 케어시트 ── */}
+        <section>
+          <SectionAnchor id="caresheet" />
+          <div className="flex items-center gap-2 mb-4">
+            <BookOpen className="size-5 text-primary" />
+            <h2 className="text-lg font-semibold">사육 케어시트</h2>
+          </div>
+          <p className="text-sm text-muted-foreground mb-4">
+            크레스티드 게코 사육에 필요한 정보를 AI 도우미가 케어시트를 참고해 답변합니다.
+          </p>
+
+          <div className="grid sm:grid-cols-2 gap-3 mb-4">
+            {[
+              { title: '온도 & 습도', desc: '적정 온도 24~27°C, 습도 50~70%. 29°C 이상 지속 시 열사병 위험' },
+              { title: '먹이 & 급여', desc: 'Repashy·Pangea·G-rab 등 사료(슈퍼푸드) 주 2~3회, 곤충 병행 시 칼슘 더스팅 필수' },
+              { title: '탈피', desc: '탈피 전 습도 유지, 발가락·눈꺼풀 잔여 허물 확인. stuck shed 시 키친타올로 불려서 제거' },
+              { title: '메이팅 & 번식', desc: '암컷 최소 45g 이상, 클러치당 2개, 부화 온도 22~26°C' },
+              { title: '건강 & 질병', desc: 'MBD, 플로피 테일, 크립토, 호흡기 감염 등 주요 질병 안내' },
+              { title: '꼬리 자절', desc: '크레는 꼬리 재생 불가 — 자절 후 "프로그 버트" 상태로 건강에는 지장 없음' },
+            ].map(c => (
+              <Card key={c.title} className="border-border">
+                <CardHeader className="pb-1 pt-3 px-4">
+                  <CardTitle className="text-sm font-medium">{c.title}</CardTitle>
+                </CardHeader>
+                <CardContent className="px-4 pb-3">
+                  <p className="text-xs text-muted-foreground">{c.desc}</p>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+
+          <Accordion type="single" collapsible>
+            <AccordionItem value="caresheet-faq">
+              <AccordionTrigger className="text-sm">AI에게 물어볼 수 있는 질문 예시</AccordionTrigger>
+              <AccordionContent>
+                <div className="space-y-1.5 text-sm text-muted-foreground">
+                  {[
+                    '"크레 적정 온도가 몇 도야?"',
+                    '"탈피 실패했을 때 어떻게 해?"',
+                    '"밥을 안 먹는데 왜 그래?"',
+                    '"꼬리가 잘렸어, 어떻게 해야 해?"',
+                    '"크레 메이팅 언제 시킬 수 있어?"',
+                    '"수컷 암컷 어떻게 구별해?"',
+                    '"여름에 너무 더운데 어떻게 해?"',
+                  ].map(q => (
+                    <div key={q} className="flex gap-2 items-start">
+                      <ChevronRight className="size-4 text-primary shrink-0 mt-0.5" />
+                      <span>{q}</span>
+                    </div>
+                  ))}
+                </div>
+              </AccordionContent>
+            </AccordionItem>
+          </Accordion>
+
+          <div className="mt-4">
+            <TipBox>
+              케어시트에 없는 내용은 AI가 "모른다"고 답변합니다. 추가로 알고 싶은 내용이 있으면 관리자에게 문의하세요.
+            </TipBox>
+          </div>
         </section>
 
       </main>
