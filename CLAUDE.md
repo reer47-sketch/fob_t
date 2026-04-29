@@ -26,6 +26,7 @@
 | 역할 | 경로 |
 |---|---|
 | AI 프롬프트 | `docs/support.md` |
+| 사육 케어시트 | `docs/caresheet.md` |
 | 도움말 페이지 | `src/app/(client)/(desktop)/help/page.tsx` |
 | AI 도우미 컴포넌트 | `src/components/ai-assistant/ai-assistant.tsx` |
 | AI 채팅 API | `src/app/api/assistant/chat/route.ts` |
